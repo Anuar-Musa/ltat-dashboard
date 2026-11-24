@@ -1,0 +1,58 @@
+name: Deploy LTAT Dashboard to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install shinylive
+        run: Rscript -e "install.packages('shinylive')"
+
+      - name: Stage latest versioned app and export
+        run: |
+          Rscript -e "
+          f <- list.files('app', pattern = '^app[_ ]+[0-9]+\\\\.[0-9]+\\\\.[0-9]+\\\\.R$', full.names = TRUE, ignore.case = TRUE)
+          if (length(f) == 0) stop('No versioned app file found in app/')
+          v <- numeric_version(sub('^.*app[_ ]+([0-9]+\\\\.[0-9]+\\\\.[0-9]+)\\\\.R$', '\\\\1', basename(f), ignore.case = TRUE))
+          latest <- f[order(v, decreasing = TRUE)][1]
+          cat('Deploying:', basename(latest), '\n')
+          dir.create('_staging', showWarnings = FALSE)
+          file.copy(latest, '_staging/app.R', overwrite = TRUE)
+          shinylive::export('_staging', '_site')
+          "
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
