@@ -2,7 +2,7 @@ name: Deploy LTAT Dashboard to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -21,37 +21,49 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup R
+      - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
 
-      - name: Install shinylive
-        run: Rscript -e "install.packages('shinylive')"
+      - name: Install R packages
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::shiny
+            any::shinylive
+            any::R6
+            any::readxl
+            any::writexl
+            any::dplyr
+            any::lubridate
+            any::stringr
+            any::reactable
+            any::htmltools
+            any::jsonlite
 
-      - name: Stage latest versioned app and export
+      - name: Export latest app version with Shinylive
+        shell: Rscript {0}
         run: |
-          Rscript -e "
-          f <- list.files('app', pattern = '^app[_ ]+[0-9]+\\\\.[0-9]+\\\\.[0-9]+\\\\.R$', full.names = TRUE, ignore.case = TRUE)
-          if (length(f) == 0) stop('No versioned app file found in app/')
-          v <- numeric_version(sub('^.*app[_ ]+([0-9]+\\\\.[0-9]+\\\\.[0-9]+)\\\\.R$', '\\\\1', basename(f), ignore.case = TRUE))
-          latest <- f[order(v, decreasing = TRUE)][1]
-          cat('Deploying:', basename(latest), '\n')
-          dir.create('_staging', showWarnings = FALSE)
-          file.copy(latest, '_staging/app.R', overwrite = TRUE)
-          shinylive::export('_staging', '_site')
-          "
+          files <- list.files("app", pattern = "^app_\\d+\\.\\d+\\.\\d+\\.R$", full.names = TRUE)
+          stopifnot("No versioned app_X.Y.Z.R files found in app/" = length(files) > 0)
+          vers <- numeric_version(sub("^app_(\\d+\\.\\d+\\.\\d+)\\.R$", "\\1", basename(files)))
+          latest <- files[order(vers, decreasing = TRUE)][1]
+          message("Selected latest script: ", latest)
+          dir.create("build_app", showWarnings = FALSE)
+          file.copy(latest, "build_app/app.R", overwrite = TRUE)
+          shinylive::export("build_app", "site")
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: '_site'
+          path: "site"
 
       - name: Deploy to GitHub Pages
         id: deployment
