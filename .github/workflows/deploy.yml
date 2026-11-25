@@ -38,9 +38,6 @@ jobs:
             any::R6
             any::readxl
             any::writexl
-            any::dplyr
-            any::lubridate
-            any::stringr
             any::reactable
             any::htmltools
             any::jsonlite
