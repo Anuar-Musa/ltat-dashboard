@@ -1177,6 +1177,7 @@ AppTable <- R6Class(
 
 ui <- fluidPage(
   tags$head(
+    tags$title("LTAT App"),
     tags$style(HTML("
       .rt-resizer {
         width: 6px !important;
@@ -1463,7 +1464,8 @@ ui <- fluidPage(
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;');
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
       }
 
       function normalizeArray(arr) {
