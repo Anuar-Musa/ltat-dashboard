@@ -1392,6 +1392,9 @@ ui <- fluidPage(
       }
     ")),
     tags$script(HTML(r"---(
+      document.title = 'LTAT App';
+      try { if (window.top && window.top.document) window.top.document.title = 'LTAT App'; } catch (e) {}      
+
       window.excelFilters = {};
       window.excelColValues = {};
       window.excelDateCols = {};
